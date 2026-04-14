@@ -21,7 +21,7 @@ You can use it as a base project for your game or use it just as en example.
 
 4. Initialize game project by running the following command (`gameId` and `publishingUrl` will be provided to you by EngageCraft team):
 ```
-./gradlew initGameModule --gameId=mygame --publishingUrl=https://example.com/maven
+./gradlew initgame --gameId=mygame --publishingUrl=https://example.com/maven
 ```
 
 > ❗ **IMPORTANT**
