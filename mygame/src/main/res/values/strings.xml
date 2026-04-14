@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mygame_title">My game</string>
+    <string name="mygame_card_game">Game: %1$s</string>
+    <string name="mygame_card_data">Card data: %1$s</string>
+    <string name="mygame_card_open_game">Open Game</string>
+    <string name="mygame_tab_home">Home</string>
+    <string name="mygame_tab_other">Other</string>
+    <string name="mygame_login">Login</string>
+    <string name="mygame_open_profile">Open profile</string>
+    <string name="mygame_game_demo">Game Demo</string>
+    <string name="mygame_close_game_demo">Close Game Demo</string>
+</resources>
