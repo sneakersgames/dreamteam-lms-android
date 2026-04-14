@@ -1,4 +1,4 @@
-package com.engagecraft.gaming.mygame
+package com.engagecraft.gaming.mygame.game
 
 import android.os.Bundle
 import androidx.compose.runtime.Composable

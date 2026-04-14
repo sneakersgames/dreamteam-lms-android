@@ -1,6 +1,5 @@
-package com.engagecraft.gaming.mygame
+package com.engagecraft.gaming.mygame.game
 
-import android.os.Bundle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,11 +13,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.engagecraft.gaming.core.lib.Gaming
 import com.engagecraft.gaming.core.lib.GamingAuthManager
+import com.engagecraft.gaming.mygame.R
 
 @Composable
-internal fun GameHome(data: Bundle? = null) {
-    val gameId = data?.getString(Gaming.PROP_GAME_ID) ?: ""
-
+internal fun GameHome(
+    gameId: String,
+    openedFromCard: Boolean,
+) {
     val user = GamingAuthManager.getUser().observeAsState()
 
     Surface(modifier = Modifier.fillMaxSize()) {
@@ -30,7 +31,7 @@ internal fun GameHome(data: Bundle? = null) {
             Text(text = stringResource(R.string.mygame_game_demo))
             Text(text = user.value?.username ?: "")
 
-            Text(text = if (data?.getBundle(Gaming.PROP_DATA)?.getBoolean("fromCard") == true) "fromCard" else "notFromCard")
+            Text(text = if (openedFromCard) "fromCard" else "notFromCard")
 
             if (user.value?.anonymous != false) {
                 Button(onClick = {

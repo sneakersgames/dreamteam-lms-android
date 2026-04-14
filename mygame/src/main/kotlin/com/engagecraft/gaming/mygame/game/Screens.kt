@@ -1,4 +1,4 @@
-package com.engagecraft.gaming.mygame
+package com.engagecraft.gaming.mygame.game
 
 import kotlinx.serialization.Serializable
 

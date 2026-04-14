@@ -1,4 +1,4 @@
-package com.engagecraft.gaming.mygame
+package com.engagecraft.gaming.mygame.game
 
 import android.graphics.Canvas
 import android.widget.LinearLayout
@@ -38,6 +38,7 @@ import androidx.core.graphics.createBitmap
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.engagecraft.gaming.core.lib.Gaming
 import com.engagecraft.gaming.core.lib.GamingAuthManager
+import com.engagecraft.gaming.mygame.R
 
 @Composable
 internal fun GameOther(
