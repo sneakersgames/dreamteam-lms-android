@@ -28,6 +28,7 @@ import com.engagecraft.gaming.core.lib.GamingAuthManager
 import com.engagecraft.gaming.core.lib.GamingEvent
 import com.engagecraft.gaming.core.lib.GamingEvent.Companion.asState
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.seconds
 
 @Keep
 @Composable
@@ -40,7 +41,7 @@ fun Card(data: Bundle? = null) {
     var onRefresh by remember(refresh) { mutableStateOf(refresh != null) }
     LaunchedEffect(onRefresh) {
         if (onRefresh) {
-            delay(1000)
+            delay(1.seconds)
             onRefresh = false
         }
     }

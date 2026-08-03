@@ -44,7 +44,7 @@ dependencyResolutionManagement {
     }
     versionCatalogs {
         create("gaming") {
-            from("com.engagecraft.gaming.core:catalog-shared:2026.04.04")
+            from("com.engagecraft.gaming.core:catalog-shared:2026.07.03")
         }
     }
 }
