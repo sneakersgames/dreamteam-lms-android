@@ -9,7 +9,7 @@ plugins {
 }
 
 val jvmVersion = JavaVersion.VERSION_17
-val mainModuleName = "mygame"
+val mainModuleName = "epllastmanstanding"
 
 android {
     namespace = "${project.group}.starterkit"
@@ -17,7 +17,7 @@ android {
     compileSdk = gaming.versions.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "${project.group}.wl.adhoc"
+        applicationId = "com.dreamteam.adhoc"
 
         minSdk = gaming.versions.minSdk.get().toInt()
         targetSdk = gaming.versions.targetSdk.get().toInt()
@@ -29,8 +29,8 @@ android {
         resValue("string", "gaming_core_dev_game_ids", mainModuleName)
 
         manifestPlaceholders.putAll(mapOf(
-            "auth0Domain" to "@string/com_auth0_domain",
-            "auth0Scheme" to "@string/com_auth0_scheme",
+            "auth0Domain" to "@string/gaming_core_ui_theme_dt_auth0_domain_pre",
+            "auth0Scheme" to "@string/gaming_core_ui_theme_dt_auth0_scheme_pre",
         ))
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -93,7 +93,7 @@ dependencies {
     implementation(platform(gaming.gaming))
     implementation(gaming.gaming.dev)
     implementation(gaming.theme.core)
-    //implementation("com.engagecraft.gaming.core:ui-shared-theme-todo")
+    implementation("com.engagecraft.gaming.core:ui-shared-theme-dt")
 
     implementation(project(":$mainModuleName"))
 

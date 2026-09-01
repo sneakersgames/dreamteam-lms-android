@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="epllastmanstanding_title">Last Man Standing</string>
+    <string name="epllastmanstanding_open_menu">Open Menu</string>
+    <string name="epllastmanstanding_error_message">Couldn\'t load the game.</string>
+    <string name="epllastmanstanding_error_retry">Try Again</string>
+    <string name="epllastmanstanding_card_headline">Hello, I\'m featured card</string>
+    <string name="epllastmanstanding_card_username">Username: %1$s</string>
+    <string name="epllastmanstanding_card_user_id">User id: %1$s</string>
+</resources>

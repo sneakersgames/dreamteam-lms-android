@@ -8,6 +8,7 @@ You can use it as a base project for your game or use it just as en example.
     1. [Components](#1-components)
     2. [Build variants (environments)](#2-build-variants-environments)
     3. [Publishing game library](#3-publishing-game-library)
+3. [DreamTeam Last Man Standing setup](#3-dreamteam-last-man-standing-setup)
 
 ***
 
@@ -90,3 +91,50 @@ To release a new snapshot just run
 ```
 ./gradlew -Psnapshot publish
 ```
+
+***
+
+## 3. DreamTeam Last Man Standing setup
+
+This project hosts the DreamTeam **Last Man Standing** game. The game itself is not native: it
+is a remote web app at `https://lms.uat-dreamteamfc.com/` running in a WebView. The Kotlin in
+`epllastmanstanding/src/main/kotlin/.../web/` is only the `ghbridge` bridge that answers the web
+app's questions about the user, environment and consent, and relays a few commands to the host.
+
+See [MIGRATION.md](MIGRATION.md) for the porting notes, the verified core-lib symbol table and
+the open items for the web and backend teams.
+
+### local.properties
+
+The bridge passes the web app a shared secret that authorises `POST /api/auth/native-session`.
+Without it the web app cannot complete a login. It is read from `local.properties`, which is
+gitignored, into `BuildConfig.GH_NATIVE_SESSION_KEY`:
+
+```properties
+# must equal the web server's NATIVE_SESSION_SECRET
+gh.nativeSessionKey=<64-char secret>
+```
+
+`GH_NATIVE_SESSION_KEY` in the environment is used as a fallback, which is how CI should supply
+it. A blank or missing value is treated as absent and sent to the web app as `null`; the build
+still succeeds, but login will not work.
+
+> ❗ Never commit the key, the GitHub PAT or any Auth0 secret.
+
+### Build type
+
+Build and run the **`pre`** variant only.
+
+```
+./gradlew :app:assemblePre
+```
+
+`debug` has no auth setup and `release` is not configured, so neither will sign in. The DreamTeam
+Auth0 configuration is applied in `app/build.gradle.kts` via `applicationId = "com.dreamteam.adhoc"`
+and the `gaming_core_ui_theme_dt_auth0_*_pre` manifest placeholders.
+
+### Debugging the bridge
+
+`WebView.setWebContentsDebuggingEnabled` is on for every non-release build, so the web app can be
+inspected from `chrome://inspect`. Bridge activity is logged through `GamingUtil.log` under the
+`[ghbridge]` tag.

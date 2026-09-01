@@ -34,7 +34,7 @@ dependencyResolutionManagement {
         }
         // project Maven repository
         maven {
-            url = uri("https://maven.pkg.github.com/WL-Gaming/packages-android-todo")
+            url = uri("https://maven.pkg.github.com/WL-Gaming/packages-android-dt")
             credentials {
                 username = System.getProperty("gpr.wlgaming.usr") ?: System.getenv("GPR_WLGAMING_USR")
                 password = System.getProperty("gpr.wlgaming.key") ?: System.getenv("GPR_WLGAMING_KEY")
@@ -44,12 +44,12 @@ dependencyResolutionManagement {
     }
     versionCatalogs {
         create("gaming") {
-            from("com.engagecraft.gaming.core:catalog-shared:2026.07.03")
+            from("com.engagecraft.gaming.core:catalog-shared:2026.08.01")
         }
     }
 }
 
-rootProject.name = "mygame"
+rootProject.name = "epllastmanstanding"
 
 include(":app")
-include(":mygame")
+include(":epllastmanstanding")
