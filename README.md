@@ -8,6 +8,12 @@ You can use it as a base project for your game or use it just as en example.
     1. [Components](#1-components)
     2. [Build variants (environments)](#2-build-variants-environments)
     3. [Publishing game library](#3-publishing-game-library)
+        1. [Maven coordinates](#maven-coordinates)
+        2. [Credentials](#credentials)
+        3. [Bump the version](#bump-the-version)
+        4. [Publish a release](#publish-a-release)
+        5. [Publish a snapshot](#publish-a-snapshot)
+        6. [Consume the library](#consume-the-library)
 3. [DreamTeam Last Man Standing setup](#3-dreamteam-last-man-standing-setup)
 
 ***
@@ -72,24 +78,115 @@ You can change variant (environment) the using build variant selection on Androi
 ### 3. Publishing game library
 
 > ❗ **IMPORTANT**
-> 
+>
 > Every game must publish on a private EngageCraft Maven repo so it could be added to the Gaming app as a Gradle dependency.
+>
+> GitHub Packages **does not allow overwriting** a released version. Bump `game.version` before every release publish. Snapshots (`0.0.0-SNAPSHOT`) can be republished.
 
+#### Maven coordinates
 
-#### Publishing a game
+- **Group:** `com.engagecraft.gaming`
+- **Artifact:** `epllastmanstanding`
+- **Release version:** `game.version` in [`gradle.properties`](gradle.properties)
+- **Snapshot version:** `0.0.0-SNAPSHOT` (fixed; do not bump)
+- **Repository:** `https://maven.pkg.github.com/WL-Gaming/packages-android-dt`
 
-Update the project version on project's `build.gradle` and run
+Print the current coordinates:
+
 ```
+./gradlew currentVersion
+```
+
+#### Credentials
+
+Publishing uses the same GitHub Packages credentials as dependency resolution. Set them in **`~/.gradle/gradle.properties`** (preferred, so they are not committed) or as environment variables:
+
+```properties
+systemProp.gpr.wlgaming.usr=YOUR_GITHUB_USERNAME
+systemProp.gpr.wlgaming.key=YOUR_GITHUB_PAT
+```
+
+```
+export GPR_WLGAMING_USR=YOUR_GITHUB_USERNAME
+export GPR_WLGAMING_KEY=YOUR_GITHUB_PAT
+```
+
+The PAT needs `read:packages` to resolve dependencies and `write:packages` to publish. It must have access to `WL-Gaming/packages-android` and `WL-Gaming/packages-android-dt`.
+
+> ❗ Never commit the PAT. `local.properties` is not read for these credentials.
+
+#### Bump the version
+
+Release versions live in `gradle.properties` as `game.version` (semver `major.minor.patch`). Use a **separate** Gradle invocation from `publish` so the new value is picked up.
+
+Patch (default), e.g. `0.0.1` → `0.0.2`:
+
+```
+./gradlew bumpVersion
+```
+
+Minor, e.g. `0.0.2` → `0.1.0`:
+
+```
+./gradlew bumpVersion -Ppart=minor
+```
+
+Major, e.g. `0.1.0` → `1.0.0`:
+
+```
+./gradlew bumpVersion -Ppart=major
+```
+
+Set an explicit version:
+
+```
+./gradlew bumpVersion -Pto=1.2.3
+```
+
+#### Publish a release
+
+1. Bump `game.version` (see above). Do **not** combine this with `publish` in the same `./gradlew` command.
+2. Publish the `:epllastmanstanding` AAR:
+
+```
+./gradlew bumpVersion
 ./gradlew publish
 ```
 
-#### Nightly (snapshot) builds
+3. Send the new version (for example `0.0.2`) to the EngageCraft team so they can wire it into the Gaming app.
 
-For the nightly builds we will use *Maven snapshots*. Snapshots do not require to change the version number for every new release so it simplifies automated build setup.
-For now, we'll use `0.0.0` version for the snapshots, and we'll update it once we see a need for that.
-To release a new snapshot just run
+Typical first-time / next release sequence:
+
+```
+./gradlew currentVersion
+./gradlew bumpVersion
+./gradlew publish
+```
+
+#### Publish a snapshot
+
+For CI / nightly builds we publish Maven snapshots. Snapshots do not require a version bump; the published version is always `0.0.0-SNAPSHOT` and can be overwritten.
+
 ```
 ./gradlew -Psnapshot publish
+```
+
+#### Consume the library
+
+In the host app (or any consumer) add the DreamTeam packages repo and the game dependency:
+
+```kotlin
+maven {
+    url = uri("https://maven.pkg.github.com/WL-Gaming/packages-android-dt")
+    credentials {
+        username = System.getProperty("gpr.wlgaming.usr") ?: System.getenv("GPR_WLGAMING_USR")
+        password = System.getProperty("gpr.wlgaming.key") ?: System.getenv("GPR_WLGAMING_KEY")
+    }
+}
+
+implementation("com.engagecraft.gaming:epllastmanstanding:0.0.1")
+// or, for CI:
+implementation("com.engagecraft.gaming:epllastmanstanding:0.0.0-SNAPSHOT")
 ```
 
 ***
