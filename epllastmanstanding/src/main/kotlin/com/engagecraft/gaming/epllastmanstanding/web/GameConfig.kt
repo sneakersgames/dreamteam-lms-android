@@ -12,7 +12,7 @@ internal object GameConfig {
     const val GAME_ID = "epllastmanstanding"
 
     /** HTTPS is deliberate: the host 301-redirects plain HTTP. */
-    const val BASE_URL = "https://lms.uat-dreamteamfc.com/"
+    const val BASE_URL = "https://lms.dreamteamfc.com/"
 
     /** Must match `protocolVersion` in the web app's `app/lib/native/messages.ts`. */
     const val PROTOCOL_VERSION = 1

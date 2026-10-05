@@ -12,9 +12,16 @@ plugins {
 
 val jvmVersion = JavaVersion.VERSION_17
 
-fun getProp(key: String): String = (project.findProperty(key) as? String)
-    ?: System.getProperty(key)
-    ?: System.getenv(key.replace(".", "_").uppercase())
+fun getProp(key: String): String {
+    val envKey = key.replace(".", "_").uppercase()
+    return (project.findProperty(key) as? String)
+        ?: System.getProperty(key)
+        ?: System.getenv(envKey)
+        ?: throw GradleException(
+            "Missing '$key'. Add 'systemProp.$key=...' to ~/.gradle/gradle.properties " +
+                "or export $envKey. See README > Credentials."
+        )
+}
 
 // local.properties is gitignored; it is where the native session key lives so the
 // shared secret never reaches version control. See README.
