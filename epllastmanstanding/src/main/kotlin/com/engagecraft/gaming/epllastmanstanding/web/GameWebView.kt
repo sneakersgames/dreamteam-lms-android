@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Message
 import android.view.ViewGroup
+import android.webkit.ConsoleMessage
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
@@ -31,9 +32,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import com.engagecraft.gaming.core.lib.Gaming
+import com.engagecraft.gaming.core.lib.GamingConfig
 import com.engagecraft.gaming.core.lib.model.Token
 import com.engagecraft.gaming.core.lib.model.User
-import com.engagecraft.gaming.epllastmanstanding.BuildConfig
 import com.engagecraft.gaming.epllastmanstanding.R
 
 /**
@@ -97,14 +98,22 @@ internal class GameWebViewHost(context: Context, private val launchUrl: String?)
      */
     private var isBridgeReady = false
 
+    /**
+     * Set by `navigation.changed`. The web app routes in memory with the URL locked at `/`, so
+     * its history is invisible to [WebView.canGoBack] and has to be reported over the bridge.
+     */
+    private var webCanGoBack = false
+
     private var currentUser: User? = null
     private var currentToken: Token? = null
     private var destroyed = false
 
     private val bridge = GhBridge(::handleMessage)
 
+    private val diagnostics = TouchDiagnostics.isEnabled(context)
+
     @SuppressLint("SetJavaScriptEnabled")
-    val webView: WebView = WebView(context).apply {
+    val webView: WebView = GameWebViewView(context, diagnostics).apply {
         layoutParams = ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -131,7 +140,7 @@ internal class GameWebViewHost(context: Context, private val launchUrl: String?)
             setAcceptCookie(true)
             setAcceptThirdPartyCookies(webView, true)
         }
-        if (BuildConfig.BUILD_TYPE != "release") {
+        if (diagnostics) {
             WebView.setWebContentsDebuggingEnabled(true)
         }
         bridge.attach(webView)
@@ -151,6 +160,13 @@ internal class GameWebViewHost(context: Context, private val launchUrl: String?)
                 GameConfig.WEBKIT_SHIM_SCRIPT,
                 setOf(GameConfig.baseOrigin),
             )
+            if (diagnostics) {
+                WebViewCompat.addDocumentStartJavaScript(
+                    webView,
+                    TouchDiagnostics.SCRIPT,
+                    setOf(GameConfig.baseOrigin),
+                )
+            }
         } else {
             bridgeLog(
                 "DOCUMENT_START_SCRIPT unsupported; falling back to onPageStarted injection, " +
@@ -164,6 +180,7 @@ internal class GameWebViewHost(context: Context, private val launchUrl: String?)
 
     fun load() {
         hasError = false
+        bridgeLog("Loading ${GameConfig.baseUrl} for env ${GamingConfig.config.env}")
         // Consent is never held on this build -- see BridgePayloads.consent.
         webView.loadUrl(GameConfig.launchUrl(passConsent = false))
     }
@@ -178,6 +195,22 @@ internal class GameWebViewHost(context: Context, private val launchUrl: String?)
     fun onDeepLink(url: String) {
         if (!url.contains(GameConfig.GAME_ID)) return
         bridge.emit("deeplink", org.json.JSONObject().put("url", url))
+    }
+
+    /**
+     * Steps back through the web app's in-memory router first, then through document history.
+     * Returns false when there is nowhere left to go, so the caller can close the game.
+     */
+    fun goBack(): Boolean = when {
+        webCanGoBack -> {
+            bridge.emit("navigation.back", null)
+            true
+        }
+        webView.canGoBack() -> {
+            webView.goBack()
+            true
+        }
+        else -> false
     }
 
     fun destroy() {
@@ -212,6 +245,9 @@ internal class GameWebViewHost(context: Context, private val launchUrl: String?)
 
             "menu.open" -> openMenu(message.payload?.optString("target"))
 
+            "navigation.changed" ->
+                webCanGoBack = message.payload?.optBoolean("canGoBack") == true
+
             else -> {
                 bridgeLog("Unsupported message type: ${message.type}")
                 if (message.expectsReply) {
@@ -241,10 +277,12 @@ internal class GameWebViewHost(context: Context, private val launchUrl: String?)
 
         override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
             super.onPageStarted(view, url, favicon)
-            // A fresh document means a fresh window.__ghBridge.
+            // A fresh document means a fresh window.__ghBridge and a fresh in-memory router.
             isBridgeReady = false
+            webCanGoBack = false
             if (needsPageStartShim) {
                 view?.evaluateJavascript(GameConfig.WEBKIT_SHIM_SCRIPT, null)
+                if (diagnostics) view?.evaluateJavascript(TouchDiagnostics.SCRIPT, null)
             }
         }
 
@@ -284,6 +322,20 @@ internal class GameWebViewHost(context: Context, private val launchUrl: String?)
     }
 
     private inner class GameWebChromeClient : WebChromeClient() {
+
+        override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
+            if (!diagnostics) return super.onConsoleMessage(consoleMessage)
+            val message = consoleMessage.message()
+            if (message.startsWith("[${TouchDiagnostics.LOG_TAG}]")) {
+                TouchDiagnostics.log("web ${message.removePrefix("[${TouchDiagnostics.LOG_TAG}] ")}")
+            } else {
+                TouchDiagnostics.log(
+                    "console ${consoleMessage.messageLevel()}: $message " +
+                        "(${consoleMessage.sourceId()}:${consoleMessage.lineNumber()})",
+                )
+            }
+            return true
+        }
 
         /**
          * There is no window for a pop-up to open into, so the navigation is routed into a

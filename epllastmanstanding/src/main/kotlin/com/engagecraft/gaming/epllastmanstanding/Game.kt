@@ -66,9 +66,15 @@ fun Game(data: Bundle? = null) {
         onDispose { host.destroy() }
     }
 
-    // The web app locks its URL and drives its own routing, so there is no history to traverse
-    // and webView.goBack() would fight the router. Closing is the only coherent behaviour.
-    BackHandler { Gaming.close() }
+    // A swipe-to-open host menu competes with vertical scrolling in the WebView. The menu stays
+    // reachable through the app bar button.
+    DisposableEffect(Unit) {
+        Gaming.setMenuGestured(false)
+        onDispose { Gaming.setMenuGestured(true) }
+    }
+
+    // Back unwinds the game's own navigation first; only at its root does it leave the game.
+    BackHandler { if (!host.goBack()) Gaming.close() }
 
     Scaffold(
         topBar = {

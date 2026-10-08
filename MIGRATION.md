@@ -50,7 +50,8 @@ Two consequences worth knowing:
   and is scoped to our origin. The `onPageStarted` fallback for devices without
   `DOCUMENT_START_SCRIPT` is genuinely racy; it logs a warning when taken.
 
-The shim is scoped to `https://lms.uat-dreamteamfc.com` and the interface is removed on teardown,
+The shim is scoped to the env-specific origin (`https://lms.dreamteamfc.com` on `PROD`,
+`https://lms.uat-dreamteamfc.com` on `PRE` and `INT`) and the interface is removed on teardown,
 since `addJavascriptInterface` otherwise exposes the object to every page in the WebView.
 
 ## 2. Verified Android core-lib symbol table
@@ -74,7 +75,7 @@ than assumed. **Three entries contradict the platform doc.**
 | `GamingHubCards.openMenu()` | `Gaming.openMenu()` | |
 | `GamingHubCards.openLink(url, gameId:)` | `Gaming.openLink(url)` | capital `L`; the doc writes `openlink` |
 | `GamingHubCards.open(gameId, data:)` | `Gaming.open(gameId, data)` | |
-| — | `Gaming.close()` | used for system back |
+| — | `Gaming.close()` | used for system back once the game has no screen to go back to |
 | `.ghLoggedIn` / `.ghLoggedOut` | `GamingAuthManager.getUser()` / `getToken()` observation | |
 | `.ghOpenLink` | `GamingEvent.onLink()` | `Link.link` |
 | `webView.preloadConsent(from:)` | `Gaming.setupWebView(webView)` | delegates to the host's `GamingListener`; default is a no-op |
@@ -144,6 +145,11 @@ supplies a real `SPUserData` and `webView.preloadConsent(from:)` injects it.
    enum has no raw value so this is inferred from the iOS convention.
 5. **`competition` and `season` are locally derived** (`premierleague` / `2027`) because the
    Android core lib does not carry them. Confirm the values, or confirm they are unused.
+6. **System back needs two new bridge messages.** The web app sends the one-way command
+   `navigation.changed` with `{ "canGoBack": boolean }` whenever its in-memory router moves, and
+   handles the event `navigation.back` by calling `navigate(-1)`. Both are additive, so
+   `protocolVersion` stays at 1. Until a web build with them is deployed, back on Android closes
+   the game from any screen.
 
 ## 6. Notable Android-specific decisions
 
@@ -157,8 +163,12 @@ supplies a real `SPUserData` and `webView.preloadConsent(from:)` injects it.
   navigation, not only an anchor tap, so external-link interception is additionally gated on a
   host mismatch. Scripted same-origin navigation is unaffected. Worth re-checking if the web app
   ever starts navigating cross-origin from script during a gesture.
-- **System back calls `Gaming.close()`.** The web app locks its URL and drives its own router, so
-  there is no history to traverse and `webView.goBack()` would fight it.
+- **System back unwinds the game before closing it.** The web app locks its URL at `/` and routes
+  in memory, so `webView.canGoBack()` cannot see its screens. The web side reports
+  `navigation.changed { canGoBack }`; while that is true, back emits `navigation.back` and the web
+  app calls `navigate(-1)`. Otherwise back falls through to `webView.goBack()` for any real
+  document history, and only then to `Gaming.close()`. Against a web build without these
+  messages, back closes the game as before.
 - **Rotation does not recreate the WebView.** The host `GamingDevMainActivity` declares
   `configChanges="...|orientation|screenSize"`, so the Activity is not recreated and the
   `remember`ed host survives.

@@ -194,9 +194,24 @@ implementation("com.engagecraft.gaming:epllastmanstanding:0.0.0-SNAPSHOT")
 ## 3. DreamTeam Last Man Standing setup
 
 This project hosts the DreamTeam **Last Man Standing** game. The game itself is not native: it
-is a remote web app at `https://lms.uat-dreamteamfc.com/` running in a WebView. The Kotlin in
+is a remote web app running in a WebView. The Kotlin in
 `epllastmanstanding/src/main/kotlin/.../web/` is only the `ghbridge` bridge that answers the web
 app's questions about the user, environment and consent, and relays a few commands to the host.
+
+### Web app URL per environment
+
+The URL is chosen at runtime from the env the host passes to `Gaming.init`
+(`GamingConfig.config.env`):
+
+| `GamingEnv` | URL |
+|---|---|
+| `PROD` | `https://lms.dreamteamfc.com/` |
+| `PRE`, `INT` | `https://lms.uat-dreamteamfc.com/` |
+
+Because the choice happens on the device, a single published AAR serves every host build:
+`./gradlew publish` and `./gradlew -Psnapshot publish` need no environment flag. The dev app
+passes the core lib's default env (`INT`), so it always loads UAT. The resolved URL is logged
+under `[ghbridge]` when the game loads.
 
 See [MIGRATION.md](MIGRATION.md) for the porting notes, the verified core-lib symbol table and
 the open items for the web and backend teams.
@@ -232,6 +247,33 @@ and the `gaming_core_ui_theme_dt_auth0_*_pre` manifest placeholders.
 
 ### Debugging the bridge
 
-`WebView.setWebContentsDebuggingEnabled` is on for every non-release build, so the web app can be
-inspected from `chrome://inspect`. Bridge activity is logged through `GamingUtil.log` under the
-`[ghbridge]` tag.
+`WebView.setWebContentsDebuggingEnabled` is on whenever the host runs a non-`PROD` env or is a
+debuggable build, so the web app can be inspected from `chrome://inspect`, including inside the
+UAT host app. The check runs on the device because the published AAR is always the release
+variant. Bridge activity is logged through `GamingUtil.log` under the `[ghbridge]` tag.
+
+### Debugging scroll
+
+The same runtime check turns on touch and scroll diagnostics. Native touch events and the
+instrumented web events go to a single logcat tag:
+
+```
+adb logcat -s ghscroll
+```
+
+Each gesture logs the native `DOWN`/`UP`/`CANCEL` with its distance (`maxDx`, `maxDy`) and the
+WebView scroll position, next to `web touchstart`/`touchmove`/`touchend` lines from the page. On
+attach, the WebView logs its parent view chain, which shows the container the host wraps the
+game in. On page load, the page logs every non-passive touch listener it registers and the
+computed `overflow`/`touch-action` of `html` and `body`.
+
+How to read it:
+
+- **`CANCEL` (with a stack trace) and no `web preventDefault` line**: a host ancestor took over
+  the gesture, typically a drawer or pager swipe. The game asks the host to switch off menu swipes
+  (`Gaming.setMenuGestured(false)`) and the WebView blocks parent interception on `ACTION_DOWN`,
+  so this should no longer appear.
+- **`web preventDefault touchmove ...`**: the web app cancelled the scroll itself; the logged
+  stack points at the listener.
+- **No `CANCEL`, but `native overscroll clamped` or `scrolled=0`**: the page cannot scroll that
+  far, which is a layout/CSS issue; check the `html`/`body` lines and the `web scroll` target.
